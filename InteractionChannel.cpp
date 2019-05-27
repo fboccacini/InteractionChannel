@@ -1,97 +1,149 @@
 #include "InteractionChannel.h"
 
-/* Output channels for sensor interaction */
-PrintChannel::PrintChannel(short int pins[], char name[], short int channelType,void (*printFunction)(const char*))
+InteractionChannel::InteractionChannel(Stream &_stream) : stream(_stream)
 {
-
-	char* _name = name;
-	short int* _pins = pins;
-	void (*print)(const char*) = printFunction;
-
-};
-
-
-/* Control input channer for sensor interaction */
-ControlChannel::ControlChannel(int pins[], char name[], control_input controlInput)
-{
-		char lastReadChar;
-		char* lastReadSentence;
-
-		char* _name = name;
-		short int* _pins = pins;
-		control_input specialButtons = controlInput;
+	this->readFunction = NULL;
+	this->printFunction = NULL;
 }
 
-// Reads a single charachter
-char ControlChannel::readChar()
+InteractionChannel::InteractionChannel(Stream &_stream,char (*getKey)()) : stream(_stream)
 {
+	this->readFunction = getKey;
+	this->printFunction = NULL;
+}
+
+InteractionChannel::InteractionChannel(Stream &_stream,void (*writeChar)(String s)) : stream(_stream)
+{
+	this->readFunction = NULL;
+	this->printFunction = writeChar;
+}
+
+InteractionChannel::InteractionChannel(char (*getKey)(),void (*writeChar)(String s))
+{
+	this->readFunction = getKey;
+	this->printFunction = writeChar;
+}
+
+InteractionChannel::InteractionChannel(Stream &_stream,Keypad keypad) : stream(_stream)
+{
+
+	auto func = [] (Keypad* keypad) { return (char (*)())&keypad->getKey; };
+
+	this->readFunction = (char (*)())&keypad.getKey; //func(keypad);
+	this->printFunction = NULL;
+
+	char c;
+	// Serial.println("test");
+	// while((c = func()) < 1) { }
+	// Serial.println(c);
+	// delay(2000);
+	Serial.println("test2");
+	while((c = this->readFunction()) < 1) { }
+	Serial.println(c);
+	delay(2000);
+}
+
+InteractionChannel::InteractionChannel(Stream &_stream,LiquidCrystal &lcd) : stream(_stream)
+{
+	auto func = [lcd] (String s) {
+		lcd.clear();
+		lcd.print(s);
+	};
+
+	this->readFunction = NULL;
+	this->printFunction = (void (*)(String s))&func;
+}
+
+InteractionChannel::InteractionChannel(Keypad* keypad,LiquidCrystal* lcd)
+{
+	auto rfunc = [keypad] () { return keypad->getKey(); };
+
+	this->readFunction = (char (*)())&rfunc;
+
+	auto wfunc = [lcd] (String s) {
+			Serial.println(s);
+			lcd->clear();
+			lcd->print(s);
+		};
+	this->printFunction = (void (*)(String s))&wfunc;
+}
+
+char InteractionChannel::read() {
+
+	if(this->readFunction == NULL)
+	{
+		return stream.read();
+	} else {
+		return this->readFunction();
+	}
 
 }
 
-// Reads a single character and transforms it in an integer
-short int ControlChannel::readSingleInt()
-{
+int InteractionChannel::available() {
+	return stream.available();
+}
+
+int InteractionChannel::peek() {
+	return stream.peek();
+}
+
+void InteractionChannel::write(byte b) {
+	stream.write(b);
+}
+
+void InteractionChannel::println(String string) {
+
+	if(this->printFunction == NULL)
+	{
+		stream.println(string);
+	} else {
+		this->printFunction(string);
+		// int l = string.length();
+		// Serial.println(string);
+		// Serial.println(l);
+		// for(int i = 0; i < l; i++)
+		// {
+		// 	Serial.println(i);
+		// 	this->printFunction(string.charAt(i));
+		//
+		// }
+	}
 
 }
 
-// Reads characters until it reads the accept char from the configuration
-char* ControlChannel::readSentence()
-{
+void InteractionChannel::println(int n) {
+	stream.println(n);
+}
+
+void InteractionChannel::println(char c) {
+
+	if(this->printFunction == NULL)
+	{
+		stream.print(c);
+	} else {
+		this->printFunction(String(c));
+	}
 
 }
 
-// Like readSentence, but it convert the output to an integer
-int ControlChannel::readInt()
-{
+void InteractionChannel::print(String string) {
+
+	if(this->printFunction == NULL)
+	{
+		stream.print(string);
+	} else {
+		this->printFunction(string);
+	}
 
 }
 
- // Same again, but it converts to float. The dot button marks the decimal point
-float ControlChannel::readFloat()
-{
+void InteractionChannel::print(char c) {
+
+	if(this->printFunction == NULL)
+	{
+		stream.print(c);
+	} else {
+		this->printFunction(String(c));
+	}
 
 }
-
-/* InteractionChannel is a combo of a PrintChannel and a ControlChannel */
-// InteractionChannel::InteractionChannel(ControlChannel* controlChannel, PrintChannel* printChannel)
-// {
-//
-//     ControlChannel _controlChannel = controlChannel;
-//     PrintChannel _printChannel = printChannel;
-// }
-
-// Prints a message on its print channel
-// void InteractionChannel::print(char* message)
-// {
-//
-// }
-//
-// // Reads a single charachter from its control channel
-// char InteractionChannel::readChar()
-// {
-//
-// }
-//
-// // Reads a single character from its control channel and transforms it in an integer
-// short int InteractionChannel::readSingleInt()
-// {
-//
-// }
-//
-// // Reads characters from its control channel until it reads the accept char from the configuration
-// char* InteractionChannel::readSentence()
-// {
-//
-// }
-//
-// // Like readSentence, but it convert the output to an integer
-// int InteractionChannel::readInt()
-// {
-//
-// }
-//
-// // Same again, but it converts to float. The dot button marks the decimal point
-// float InteractionChannel::readFloat()
-// {
-//
-// }

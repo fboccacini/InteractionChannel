@@ -1,77 +1,49 @@
-#ifndef INTERACTION_CHANNEL_H
-#define INTERACTION_CHANNEL_H
-
-/* Definition of channel types */
-#define CONSOLE 1
-#define KEYPAD 2
+#ifndef InteractionChannel_h
+#define InteractionChannel_h 0x00
 
 #include "Arduino.h"
+#include "SoftwareSerial.h"
+#include "HardwareSerial.h"
+#include "LiquidCrystal.h"
+#include "Keypad.h"
 
-/* Output channels for sensor interaction */
-class PrintChannel
-{
-	public:
-		PrintChannel(short int pins[], char name[], short int channelType,void (*printFunction)(const char*));
-		void (*print)(const char*);
+class InteractionChannel {
 
-	private:
-		char* _name;
-		short int* _pins;
+private:
+  Stream &stream;
 
-};
+public:
 
+	/* Stream only constructor */
+  InteractionChannel(Stream &_stream);
 
-/* Control channel special characters */
-typedef struct control_input {
-	char accept;
-	char back;
-	char exit;
-	char next;
-	char previous;
-  char dot;
-};
+	/* Custom read and write function consturctors */
+	InteractionChannel(Stream &_stream,char (*getKey)());
+	InteractionChannel(Stream &_stream,void (*writeChar)(String s));
+	InteractionChannel(char (*getKey)(),void (*writeChar)(String s));
 
-/* Control input channer for sensor interaction */
-class ControlChannel
-{
-	public:
-		ControlChannel(int pins[], char name[], control_input controlInput);
+	/* Keypad and LCD constructors */
+	InteractionChannel(Stream &_stream,Keypad keypad);
+	InteractionChannel(Stream &_stream,LiquidCrystal &lcd);
+	InteractionChannel(Keypad* keypad,LiquidCrystal* lcd);
 
-		char readChar();              // Reads a single charachter
-    short int readSingleInt();    // Reads a single character and transforms it in an integer
+	char (*readFunction)();
+	void (*printFunction)(String s);
 
-		char* readSentence();         // Reads characters until it reads the accept char from the configuration
-    int readInt();                // Like readSentence, but it convert the output to an integer
-    float readFloat();            // Same again, but it converts to float. The dot button marks the decimal point
+	void* reader;
+	void* writer;
 
-		char lastReadChar;
-		char* lastReadSentence;
+  char read();
+  int available();
+  int peek();
 
-	private:
-		char* _name;
-		short int* _pins;
-		control_input specialButtons;
+  void write(byte b);
+  void println(String string);
+	void println(int n);
+	void println(char c);
+  void print(String string);
+	void print(char c);
 
 };
-
-/* InteractionChannel is a combo of a PrintChannel and a ControlChannel */
-// class InteractionChannel
-// {
-//   public:
-//     InteractionChannel(ControlChannel* controlChannel, PrintChannel* printChannel);
-//     void print(char* message);    // Prints a message on its print channel
-//     char readChar();              // Reads a single charachter from its control channel
-//     short int readSingleInt();    // Reads a single character from its control channel and transforms it in an integer
-//
-// 		char* readSentence();         // Reads characters from its control channel until it reads the accept char from the configuration
-//     int readInt();                // Like readSentence, but it convert the output to an integer
-//     float readFloat();            // Same again, but it converts to float. The dot button marks the decimal point
-//
-//
-//   private:
-//     ControlChannel controlChannel;
-//     PrintChannel printChannel;
-// };
-
 
 #endif

@@ -1,4 +1,5 @@
 #include "InteractionChannel.h"
+#include "ChannelTypes.h"
 
 InteractionChannel::InteractionChannel(Stream &_stream) : stream(_stream)
 {
@@ -24,57 +25,70 @@ InteractionChannel::InteractionChannel(char (*getKey)(),void (*writeChar)(String
 	this->printFunction = writeChar;
 }
 
-InteractionChannel::InteractionChannel(Stream &_stream,Keypad keypad) : stream(_stream)
+InteractionChannel::InteractionChannel(Stream &_stream,Keypad* keypad) : stream(_stream)
 {
-
-	auto func = [] (Keypad* keypad) { return (char (*)())&keypad->getKey; };
-
-	this->readFunction = (char (*)())&keypad.getKey; //func(keypad);
-	this->printFunction = NULL;
-
-	char c;
-	// Serial.println("test");
-	// while((c = func()) < 1) { }
-	// Serial.println(c);
-	// delay(2000);
-	Serial.println("test2");
-	while((c = this->readFunction()) < 1) { }
-	Serial.println(c);
-	delay(2000);
-}
-
-InteractionChannel::InteractionChannel(Stream &_stream,LiquidCrystal &lcd) : stream(_stream)
-{
-	auto func = [lcd] (String s) {
-		lcd.clear();
-		lcd.print(s);
-	};
 
 	this->readFunction = NULL;
-	this->printFunction = (void (*)(String s))&func;
+	this->printFunction = NULL;
+
+	this->reader = keypad;
+	this->readerFunction = &readKeypad;
+
+}
+
+InteractionChannel::InteractionChannel(Stream &_stream,LiquidCrystal* lcd) : stream(_stream)
+{
+
+	this->readFunction = NULL;
+	this->printFunction = NULL;
+
+	this->writer = lcd;
+	this->writerFunction = &lcdPrint;
+
 }
 
 InteractionChannel::InteractionChannel(Keypad* keypad,LiquidCrystal* lcd)
 {
-	auto rfunc = [keypad] () { return keypad->getKey(); };
+	// TODO: It would be nice to find a solution with lambdas like following, so that
+	// an extra header like ChannelTypes.h wouldn't be required.
+	// This one does not work because passing a pointer to a capturing lambda is not allowed.
+	// I also tried a non-capturing solution with the pointer as argument, it compiled,
+	// but it didn't work due to some overflow (I guess..). I'll come back here in a while.
+	//
+	// auto rfunc = [keypad] () { return keypad->getKey(); };
+	//
+	// this->readFunction = (char (*)())&rfunc;
+	//
+	// auto wfunc = [lcd] (String s) {
+	// 		Serial.println(s);
+	// 		lcd->clear();
+	// 		lcd->print(s);
+	// 	};
+	// this->printFunction = (void (*)(String s))&wfunc;
 
-	this->readFunction = (char (*)())&rfunc;
+	this->readFunction = NULL;
+	this->printFunction = NULL;
 
-	auto wfunc = [lcd] (String s) {
-			Serial.println(s);
-			lcd->clear();
-			lcd->print(s);
-		};
-	this->printFunction = (void (*)(String s))&wfunc;
+	this->reader = keypad;
+	this->readerFunction = &readKeypad;
+
+	this->writer = lcd;
+	this->writerFunction = &lcdPrint;
+
 }
 
 char InteractionChannel::read() {
 
-	if(this->readFunction == NULL)
+	if(this->readerFunction == NULL)
 	{
-		return stream.read();
+		if(this->readFunction == NULL)
+		{
+			return stream.read();
+		} else {
+			return this->readFunction();
+		}
 	} else {
-		return this->readFunction();
+		return this->readerFunction(this->reader);
 	}
 
 }
@@ -93,11 +107,22 @@ void InteractionChannel::write(byte b) {
 
 void InteractionChannel::println(String string) {
 
-	if(this->printFunction == NULL)
+	if(this->writerFunction == NULL)
 	{
-		stream.println(string);
+		if(this->printFunction == NULL)
+		{
+			stream.println(string);
+		} else {
+			printFunction(string);
+		}
 	} else {
-		this->printFunction(string);
+		writerFunction(this->writer, string);
+	}
+	// if(this->printFunction == NULL)
+	// {
+	// 	stream.println(string);
+	// } else {
+	// 	this->printFunction(string);
 		// int l = string.length();
 		// Serial.println(string);
 		// Serial.println(l);
@@ -107,7 +132,7 @@ void InteractionChannel::println(String string) {
 		// 	this->printFunction(string.charAt(i));
 		//
 		// }
-	}
+	// }
 
 }
 

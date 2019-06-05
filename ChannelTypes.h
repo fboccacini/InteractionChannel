@@ -1,15 +1,24 @@
 
 //////////////////////////////////////////////////////////////////////////////////////////
 /*																																											*/
+/* Definition of reading functions for specific input channels.												*/
+/*																																											*/
+//////////////////////////////////////////////////////////////////////////////////////////
+char readKeypad(Keypad* keypad)
+{
+	keypad->getKey();
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////
+/*																																											*/
 /* Definition of printing functions for specific print channels.												*/
 /*																																											*/
 //////////////////////////////////////////////////////////////////////////////////////////
-void consolePrint(const char* message)
+void lcdPrint(LiquidCrystal* lcd, String s)
 {
-	Serial.println(message);
+	lcd->clear();
+	lcd->print(s);
 }
-
-
 
 //////////////////////////////////////////////////////////////////////////////////////////
 /*																																											*/
@@ -27,4 +36,4 @@ void consolePrint(const char* message)
 /*																																											*/
 //////////////////////////////////////////////////////////////////////////////////////////
 
-control_input keypadSpecialChars = {'A','B','C','D','E','F'};
+// control_input keypadSpecialChars = {'A','B','C','D','E','F'};

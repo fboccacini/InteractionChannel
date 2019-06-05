@@ -23,15 +23,17 @@ public:
 	InteractionChannel(char (*getKey)(),void (*writeChar)(String s));
 
 	/* Keypad and LCD constructors */
-	InteractionChannel(Stream &_stream,Keypad keypad);
-	InteractionChannel(Stream &_stream,LiquidCrystal &lcd);
+	InteractionChannel(Stream &_stream,Keypad* keypad);
+	InteractionChannel(Stream &_stream,LiquidCrystal* lcd);
 	InteractionChannel(Keypad* keypad,LiquidCrystal* lcd);
 
-	char (*readFunction)();
-	void (*printFunction)(String s);
+	char (*readFunction)() = NULL;
+  char (*readerFunction)(void* reader) = NULL;
+	void (*printFunction)(String s) = NULL;
+  char (*writerFunction)(void* writer, String s) = NULL;
 
-	void* reader;
-	void* writer;
+	void* reader = NULL;
+	void* writer = NULL;
 
   char read();
   int available();
